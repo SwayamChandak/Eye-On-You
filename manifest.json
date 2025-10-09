@@ -9,6 +9,9 @@
     "alarms",
     "idle"
   ],
+  "host_permissions": [
+    "https://api.emailjs.com/*"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -19,5 +22,3 @@
   },
   "options_page": "options.html"
 }
-
-
