@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Time Counter",
+  "version": "0.1.0",
+  "description": "Track time spent on websites, with protected enable/disable.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "alarms",
+    "idle"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Time Counter",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html"
+}
+
+

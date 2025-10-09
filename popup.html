@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Time Counter</title>
+    <style>
+      :root { --bg:#0b1020; --card:#111934; --muted:#a8b3cf; --text:#f7f9ff; --accent:#6aa3ff; --accent-2:#66e0c2; --danger:#ff6b6b; --row:#0f1730; }
+      body { font-family: system-ui, sans-serif; margin: 0; width: 340px; background: var(--bg); color: var(--text); }
+      .container { padding: 14px; }
+      .card { background: var(--card); border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.35); padding: 12px; }
+      h1 { font-size: 16px; margin: 0 0 10px; }
+      .row { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; }
+      table { width: 100%; border-collapse: separate; border-spacing: 0; overflow: hidden; border-radius: 10px; }
+      thead th { background: #0e1530; color: var(--muted); font-weight: 600; }
+      th, td { text-align: left; padding: 8px 10px; font-size: 13px; }
+      tbody tr { background: var(--row); }
+      tbody tr:nth-child(even) { background: #0c1329; }
+      .controls { display: flex; gap: 8px; margin-top: 10px; }
+      input { font: inherit; padding: 8px 10px; background: #0e1631; color: var(--text); border: 1px solid #1e2a55; border-radius: 10px; outline: none; transition: box-shadow .2s, border-color .2s; }
+      input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(106,163,255,.2); }
+      button { font: inherit; padding: 8px 12px; border-radius: 10px; border: 1px solid #1e2a55; background: linear-gradient(180deg,#16224a,#101a39); color: var(--text); cursor: pointer; transition: transform .06s ease, box-shadow .2s, border-color .2s, background .2s; box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 8px 18px rgba(0,0,0,0.35); }
+      button:hover { border-color: var(--accent); box-shadow: 0 6px 16px rgba(106,163,255,0.25); }
+      button:active { transform: translateY(1px) scale(0.99); }
+      #lockBtn { border-color: #2a3c7a; }
+      #unlockBtn { border-color: #2a7a6a; }
+      #clearBtn { border-color: #7a2a2a; }
+      .auth { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+      .error { color: var(--danger); font-size: 12px; }
+      .muted { color: var(--muted); font-size: 12px; }
+      .badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #0e1530; border: 1px solid #263665; color: var(--accent-2); }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>Time Counter</h1>
+        <div class="row">
+          <div>Tracking:</div>
+          <div id="trackingState" class="badge">...</div>
+        </div>
+
+        <table id="statsTable">
+          <thead>
+            <tr><th>Domain</th><th>Time</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div class="controls">
+          <button id="refreshBtn">Refresh</button>
+          <button id="clearBtn">Clear</button>
+        </div>
+
+        <div class="auth">
+          <div class="muted">Lock/Unlock requires credentials (set in Options).</div>
+          <input id="username" type="text" placeholder="Username" />
+          <input id="password" type="password" placeholder="Password" />
+          <div class="row">
+            <button id="lockBtn">Lock (Disable)</button>
+            <button id="unlockBtn">Unlock (Enable)</button>
+          </div>
+          <div id="authMsg" class="error"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+  </html>
+
+

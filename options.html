@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Time Counter Options</title>
+    <style>
+      :root { --bg:#0b1020; --card:#111934; --muted:#a8b3cf; --text:#f7f9ff; --accent:#6aa3ff; }
+      body { font-family: system-ui, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+      .container { padding: 22px; display:flex; justify-content:center; }
+      .card { background: var(--card); border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.35); padding: 18px; width: 640px; }
+      h1 { font-size: 20px; margin-bottom: 12px; }
+      label { display: block; margin: 10px 0 6px; color: var(--muted); }
+      input { font: inherit; padding: 10px 12px; width: 100%; background: #0e1631; color: var(--text); border: 1px solid #1e2a55; border-radius: 10px; outline: none; transition: box-shadow .2s, border-color .2s; }
+      input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(106,163,255,.2); }
+      button { margin-top: 12px; font: inherit; padding: 10px 14px; border-radius: 10px; border: 1px solid #1e2a55; background: linear-gradient(180deg,#16224a,#101a39); color: var(--text); cursor: pointer; transition: transform .06s ease, box-shadow .2s, border-color .2s, background .2s; box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 8px 18px rgba(0,0,0,0.35); }
+      button:hover { border-color: var(--accent); box-shadow: 0 6px 16px rgba(106,163,255,0.25); }
+      button:active { transform: translateY(1px) scale(0.99); }
+      .row { display:flex; gap:8px; align-items:center; }
+      .msg { margin-top: 10px; font-size: 13px; }
+      .ok { color: #66e0c2; }
+      .err { color: #ff6b6b; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>Credentials</h1>
+        <p>Set a username and password to lock/unlock tracking. Password is stored as a salted SHA-256 hash.</p>
+
+        <label>Username</label>
+        <input id="username" type="text" placeholder="Username" />
+
+        <label>Password</label>
+        <input id="password" type="password" placeholder="Password" />
+
+        <div class="row">
+          <button id="saveBtn">Save</button>
+        </div>
+
+        <div id="msg" class="msg"></div>
+      </div>
+    </div>
+
+    <script type="module" src="options.js"></script>
+  </body>
+  </html>
+
+
