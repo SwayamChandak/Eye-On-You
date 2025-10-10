@@ -29,6 +29,9 @@
       .error { color: var(--danger); font-size: 12px; }
       .muted { color: var(--muted); font-size: 12px; }
       .badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #0e1530; border: 1px solid #263665; color: var(--accent-2); }
+      .website-cell { display: flex; align-items: center; gap: 8px; }
+      .website-favicon { width: 16px; height: 16px; border-radius: 2px; flex-shrink: 0; }
+      .website-name { font-weight: 500; color: var(--text); }
     </style>
   </head>
   <body>
@@ -42,7 +45,7 @@
 
         <table id="statsTable">
           <thead>
-            <tr><th>Domain</th><th>Time</th></tr>
+            <tr><th>Website</th><th>Time</th></tr>
           </thead>
           <tbody></tbody>
         </table>

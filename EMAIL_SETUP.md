@@ -104,3 +104,7 @@ The extension sends different email templates based on the event:
 - Email sending is handled in the background service worker (`background.js`)
 - Email triggers are implemented in `options.js` (password changes) and `popup.js` (clear button)
 - All email operations are asynchronous and include error handling
+
+
+
+service_tpxkdmb

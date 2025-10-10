@@ -4,6 +4,7 @@ import { sendEmailNotification } from "./util_email.js";
 // Storage keys
 const STORAGE_KEYS = {
   timeByHost: "timeByHost",
+  websiteData: "websiteData", // { host: { name, favicon, time } }
   isTrackingEnabled: "isTrackingEnabled",
   credentials: "credentials", // { username, passwordHash, salt, email }
 };
@@ -23,6 +24,10 @@ chrome.runtime.onInstalled.addListener(async () => {
   if (typeof isTrackingEnabled === "undefined") {
     await chrome.storage.local.set({ [STORAGE_KEYS.isTrackingEnabled]: true });
   }
+
+  // Migrate old timeByHost data to new websiteData format
+  await migrateOldData();
+
   await ensureAlarm();
   await initActiveContext();
 });
@@ -57,30 +62,65 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
   // Count even when the window is minimized or unfocused.
 
+  // Update both legacy timeByHost and new websiteData
   const timeData =
     (await chrome.storage.local.get(STORAGE_KEYS.timeByHost))[
       STORAGE_KEYS.timeByHost
     ] || {};
   timeData[activeHost] = (timeData[activeHost] || 0) + elapsedSec;
   await chrome.storage.local.set({ [STORAGE_KEYS.timeByHost]: timeData });
+
+  // Update website data with new time
+  const { websiteData: existingWebsiteData } = await chrome.storage.local.get(
+    STORAGE_KEYS.websiteData
+  );
+  if (existingWebsiteData && existingWebsiteData[activeHost]) {
+    existingWebsiteData[activeHost].time =
+      (existingWebsiteData[activeHost].time || 0) + elapsedSec;
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.websiteData]: existingWebsiteData,
+    });
+  }
 });
 
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   activeTabId = activeInfo.tabId;
   const tab = await chrome.tabs.get(activeTabId).catch(() => null);
-  activeHost = extractHost(tab?.url);
+  if (tab?.url) {
+    const websiteData = await getWebsiteData(tab.url);
+    activeHost = websiteData?.host || null;
+
+    // Store website data if not already stored
+    if (websiteData) {
+      await storeWebsiteData(websiteData);
+    }
+  }
 });
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (tabId === activeTabId && changeInfo.url) {
-    activeHost = extractHost(changeInfo.url);
+    const websiteData = await getWebsiteData(changeInfo.url);
+    activeHost = websiteData?.host || null;
+
+    // Store website data if not already stored
+    if (websiteData) {
+      await storeWebsiteData(websiteData);
+    }
   }
 });
 
 chrome.windows.onFocusChanged.addListener(async () => {
   if (activeTabId == null) return;
   const tab = await chrome.tabs.get(activeTabId).catch(() => null);
-  activeHost = extractHost(tab?.url);
+  if (tab?.url) {
+    const websiteData = await getWebsiteData(tab.url);
+    activeHost = websiteData?.host || null;
+
+    // Store website data if not already stored
+    if (websiteData) {
+      await storeWebsiteData(websiteData);
+    }
+  }
 });
 
 async function initActiveContext() {
@@ -89,9 +129,15 @@ async function initActiveContext() {
       active: true,
       lastFocusedWindow: true,
     });
-    if (tab) {
+    if (tab?.url) {
       activeTabId = tab.id;
-      activeHost = extractHost(tab.url);
+      const websiteData = await getWebsiteData(tab.url);
+      activeHost = websiteData?.host || null;
+
+      // Store website data if not already stored
+      if (websiteData) {
+        await storeWebsiteData(websiteData);
+      }
     }
   } catch {}
 }
@@ -105,6 +151,114 @@ function extractHost(url) {
   }
 }
 
+function extractWebsiteName(url) {
+  try {
+    const u = new URL(url);
+    const hostname = u.hostname;
+
+    // Remove www. prefix if present
+    let name = hostname.replace(/^www\./, "");
+
+    // Extract the main domain name (remove subdomains for common cases)
+    const parts = name.split(".");
+    if (parts.length > 2) {
+      // Check if it's a common subdomain pattern
+      const commonSubdomains = [
+        "mail",
+        "blog",
+        "shop",
+        "store",
+        "news",
+        "support",
+        "help",
+        "docs",
+        "app",
+      ];
+      if (commonSubdomains.includes(parts[0])) {
+        name = parts.slice(1).join(".");
+      }
+    }
+
+    // Capitalize first letter of each word
+    return name
+      .split(".")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(".");
+  } catch {
+    return null;
+  }
+}
+
+function getFaviconUrl(url) {
+  try {
+    const u = new URL(url);
+    return `${u.protocol}//${u.host}/favicon.ico`;
+  } catch {
+    return null;
+  }
+}
+
+async function getWebsiteData(url) {
+  const host = extractHost(url);
+  if (!host) return null;
+
+  const name = extractWebsiteName(url);
+  const favicon = getFaviconUrl(url);
+
+  return { host, name, favicon };
+}
+
+async function storeWebsiteData(websiteData) {
+  const { websiteData: existingData } = await chrome.storage.local.get(
+    STORAGE_KEYS.websiteData
+  );
+  const data = existingData || {};
+
+  // Only store if not already present or if data has changed
+  if (
+    !data[websiteData.host] ||
+    data[websiteData.host].name !== websiteData.name
+  ) {
+    data[websiteData.host] = {
+      name: websiteData.name,
+      favicon: websiteData.favicon,
+      time: data[websiteData.host]?.time || 0,
+    };
+    await chrome.storage.local.set({ [STORAGE_KEYS.websiteData]: data });
+  }
+}
+
+async function migrateOldData() {
+  const { timeByHost, websiteData } = await chrome.storage.local.get([
+    STORAGE_KEYS.timeByHost,
+    STORAGE_KEYS.websiteData,
+  ]);
+
+  // If we have old timeByHost data but no websiteData, migrate it
+  if (timeByHost && !websiteData) {
+    const migratedData = {};
+
+    for (const [host, time] of Object.entries(timeByHost)) {
+      if (time > 0) {
+        const name = extractWebsiteName(`https://${host}`);
+        const favicon = getFaviconUrl(`https://${host}`);
+
+        migratedData[host] = {
+          name: name || host,
+          favicon: favicon,
+          time: time,
+        };
+      }
+    }
+
+    if (Object.keys(migratedData).length > 0) {
+      await chrome.storage.local.set({
+        [STORAGE_KEYS.websiteData]: migratedData,
+      });
+    }
+  }
+}
+
 // Message handlers for popup/options
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   // Use async flow via sendResponse(true) and return true
@@ -112,11 +266,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === "getStats") {
       const data =
         (await chrome.storage.local.get([
-          STORAGE_KEYS.timeByHost,
+          STORAGE_KEYS.websiteData,
           STORAGE_KEYS.isTrackingEnabled,
         ])) || {};
       sendResponse({
-        timeByHost: data[STORAGE_KEYS.timeByHost] || {},
+        websiteData: data[STORAGE_KEYS.websiteData] || {},
         isTrackingEnabled: data[STORAGE_KEYS.isTrackingEnabled] !== false,
       });
       return;
@@ -136,7 +290,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         sendResponse({ ok: false, error: "Unauthorized" });
         return;
       }
-      await chrome.storage.local.set({ [STORAGE_KEYS.timeByHost]: {} });
+      await chrome.storage.local.set({
+        [STORAGE_KEYS.timeByHost]: {},
+        [STORAGE_KEYS.websiteData]: {},
+      });
 
       // Send email notification if email is stored
       if (creds && creds.email) {

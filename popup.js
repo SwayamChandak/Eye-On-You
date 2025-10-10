@@ -25,15 +25,44 @@ async function loadStats() {
   const res = await chrome.runtime.sendMessage({ type: "getStats" });
   trackingStateEl.textContent = res.isTrackingEnabled ? "Enabled" : "Disabled";
   tableBodyEl.innerHTML = "";
-  const entries = Object.entries(res.timeByHost || {}).sort(
-    (a, b) => b[1] - a[1]
-  );
-  for (const [host, seconds] of entries) {
+
+  const websiteData = res.websiteData || {};
+  const entries = Object.entries(websiteData)
+    .filter(([_, data]) => data.time > 0)
+    .sort((a, b) => b[1].time - a[1].time);
+
+  for (const [host, data] of entries) {
     const tr = document.createElement("tr");
+
+    // Website name and favicon cell
     const td1 = document.createElement("td");
+    td1.className = "website-cell";
+
+    // Create favicon image
+    const favicon = document.createElement("img");
+    favicon.src =
+      data.favicon ||
+      "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23666'/><text x='8' y='12' text-anchor='middle' fill='white' font-size='10' font-family='Arial'>?</text></svg>";
+    favicon.className = "website-favicon";
+    favicon.onerror = function () {
+      this.src =
+        "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23666'/><text x='8' y='12' text-anchor='middle' fill='white' font-size='10' font-family='Arial'>?</text></svg>";
+    };
+
+    // Create website name
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = data.name || host;
+    nameSpan.className = "website-name";
+
+    td1.appendChild(favicon);
+    td1.appendChild(nameSpan);
+
+    // Time cell
     const td2 = document.createElement("td");
-    td1.textContent = host;
-    td2.textContent = formatDuration(seconds);
+    td2.textContent = formatDuration(data.time);
+    td2.style.fontFamily = "monospace";
+    td2.style.fontSize = "12px";
+
     tr.appendChild(td1);
     tr.appendChild(td2);
     tableBodyEl.appendChild(tr);
