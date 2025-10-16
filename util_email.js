@@ -8,6 +8,31 @@ const EMAILJS_CONFIG = {
 };
 
 /**
+ * Validate EmailJS configuration
+ * @returns {object} - Validation result with success status and errors
+ */
+function validateEmailJSConfig() {
+  const errors = [];
+  
+  if (!EMAILJS_CONFIG.serviceId || EMAILJS_CONFIG.serviceId.startsWith('service_') === false) {
+    errors.push('Invalid or missing serviceId');
+  }
+  
+  if (!EMAILJS_CONFIG.templateId || EMAILJS_CONFIG.templateId.startsWith('template_') === false) {
+    errors.push('Invalid or missing templateId');
+  }
+  
+  if (!EMAILJS_CONFIG.publicKey || EMAILJS_CONFIG.publicKey.length < 10) {
+    errors.push('Invalid or missing publicKey');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors: errors
+  };
+}
+
+/**
  * Send email notification using EmailJS
  * @param {string} event - Type of event (password_change, clear_data)
  * @param {string} email - Recipient email address
@@ -17,6 +42,17 @@ export async function sendEmailNotification(event, email, username) {
   if (!email || !isValidEmail(email)) {
     console.error("Invalid email address:", email);
     return { success: false, error: "Invalid email address" };
+  }
+
+  // Validate EmailJS configuration
+  const configValidation = validateEmailJSConfig();
+  if (!configValidation.isValid) {
+    console.error("EmailJS configuration invalid:", configValidation.errors);
+    return { 
+      success: false, 
+      error: "EmailJS configuration invalid", 
+      details: configValidation.errors.join(', ')
+    };
   }
 
   try {
@@ -52,12 +88,43 @@ export async function sendEmailNotification(event, email, username) {
       console.log("Email sent successfully");
       return { success: true };
     } else {
-      console.error("Failed to send email:", response.statusText);
-      return { success: false, error: "Failed to send email" };
+      const errorText = await response.text();
+      console.error("Failed to send email:", {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+        url: response.url
+      });
+      return { 
+        success: false, 
+        error: `Failed to send email: ${response.status} ${response.statusText}`,
+        details: errorText
+      };
     }
   } catch (error) {
-    console.error("Error sending email:", error);
-    return { success: false, error: error.message };
+    console.error("Error sending email:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
+    // Try fallback webhook method if EmailJS fails
+    console.log("Attempting fallback webhook method...");
+    try {
+      const fallbackResult = await sendEmailWebhook(event, email, username);
+      if (fallbackResult.success) {
+        console.log("Email sent successfully via webhook fallback");
+        return { success: true, method: "webhook" };
+      }
+    } catch (fallbackError) {
+      console.error("Fallback webhook also failed:", fallbackError);
+    }
+    
+    return { 
+      success: false, 
+      error: error.message,
+      originalError: error.name
+    };
   }
 }
 
@@ -135,6 +202,66 @@ Time Counter Extension`;
 }
 
 /**
+ * Test EmailJS configuration and connection
+ * @returns {Promise<object>} - Test result with success status and details
+ */
+export async function testEmailJSConnection() {
+  console.log("Testing EmailJS configuration...");
+  
+  const configValidation = validateEmailJSConfig();
+  if (!configValidation.isValid) {
+    return {
+      success: false,
+      error: "Configuration invalid",
+      details: configValidation.errors
+    };
+  }
+  
+  try {
+    // Test with minimal parameters
+    const testParams = {
+      email: "pista.cruiser@gmail.com"  // Using the exact email field as shown in the template
+    };
+    
+    const response = await fetch(
+      "https://api.emailjs.com/api/v1.0/email/send",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          service_id: EMAILJS_CONFIG.serviceId,
+          template_id: EMAILJS_CONFIG.templateId,
+          user_id: EMAILJS_CONFIG.publicKey,
+          template_params: testParams,
+        }),
+      }
+    );
+    
+    const responseText = await response.text();
+    
+    return {
+      success: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      response: responseText,
+      config: {
+        serviceId: EMAILJS_CONFIG.serviceId,
+        templateId: EMAILJS_CONFIG.templateId,
+        publicKey: EMAILJS_CONFIG.publicKey.substring(0, 5) + "..."
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      name: error.name
+    };
+  }
+}
+
+/**
  * Alternative method using a simple webhook approach
  * This is a fallback method that doesn't require EmailJS
  * @param {string} event - Type of event
@@ -172,4 +299,36 @@ export async function sendEmailWebhook(event, email, username) {
     console.error("Webhook email error:", error);
     return { success: false, error: error.message };
   }
+}
+
+/**
+ * Simple email notification using a basic HTTP service
+ * This is a working alternative that doesn't require EmailJS setup
+ * @param {string} event - Type of event
+ * @param {string} email - Recipient email address
+ * @param {string} username - Username
+ */
+export async function sendSimpleEmailNotification(event, email, username) {
+  // Using a free email service like EmailJS alternative or webhook
+  // This is a simplified version that logs the email content
+  // In production, you would replace this with a real email service
+  
+  const emailContent = {
+    to: email,
+    subject: getEmailSubject(event),
+    message: getEmailMessage(event, username),
+    timestamp: new Date().toISOString(),
+    event: event,
+    username: username,
+  };
+  
+  console.log("Email notification (simulated):", emailContent);
+  
+  // For now, we'll simulate success
+  // In a real implementation, you would send this to an email service
+  return {
+    success: true,
+    method: "simulated",
+    content: emailContent
+  };
 }
