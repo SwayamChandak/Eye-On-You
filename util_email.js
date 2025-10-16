@@ -57,12 +57,7 @@ export async function sendEmailNotification(event, email, username) {
 
   try {
     const templateParams = {
-      to_email: email,
-      username: username || "User",
-      event_type: event,
-      timestamp: new Date().toLocaleString(),
-      subject: getEmailSubject(event),
-      message: getEmailMessage(event, username),
+      email: email  // Using the same format that worked in the test
     };
 
     // For Chrome extension, we'll use a simple fetch approach
@@ -219,8 +214,9 @@ export async function testEmailJSConnection() {
   
   try {
     // Test with minimal parameters
+    const testEmail = await chrome.storage.sync.get(['userEmail']);
     const testParams = {
-      email: "pista.cruiser@gmail.com"  // Using the exact email field as shown in the template
+      email: testEmail.userEmail || "pista.cruiser@gmail.com"
     };
     
     const response = await fetch(
