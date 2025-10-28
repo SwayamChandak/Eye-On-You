@@ -117,6 +117,9 @@ async function tryAuthAnd(action) {
     return;
   }
   await action();
+  // Clear username and password fields after successful action
+  usernameEl.value = "";
+  passwordEl.value = "";
   await loadStats();
 }
 
