@@ -1,6 +1,7 @@
 import express from "express";
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import fetch from "node-fetch";
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ const razorpay = new Razorpay({
 
 // Create Order
 router.post("/create-order", async (req, res) => {
-  console.log("🚀 ~ create-order:", create-order)
+  console.log("🚀 ~ create-order:", create - order);
   try {
     const {
       amount,
@@ -55,8 +56,25 @@ router.post("/create-order", async (req, res) => {
       },
     };
 
-    // Create order using Razorpay SDK
-    const order = await razorpay.orders.create(options);
+    // Make request to Razorpay's orders API
+    const response = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization:
+          "Basic " +
+          Buffer.from(
+            process.env.RAZORPAY_KEY_ID + ":" + process.env.RAZORPAY_KEY_SECRET
+          ).toString("base64"),
+      },
+      body: JSON.stringify(options),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to create Razorpay order");
+    }
+
+    const order = await response.json();
 
     res.json({
       success: true,

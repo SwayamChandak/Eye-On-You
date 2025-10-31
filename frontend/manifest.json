@@ -13,7 +13,7 @@
     "https://api.emailjs.com/*",
     "https://api.razorpay.com/*",
     "https://checkout.razorpay.com/*",
-    "https://your-backend.vercel.app/*"
+    "http://localhost:3000/*"
   ],
   "background": {
     "service_worker": "background.js",

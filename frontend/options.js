@@ -1,4 +1,5 @@
 import { sha256Base64, randomSalt } from "../backend/util_hash.js";
+import { initiatePayment } from "./payment_handler.js";
 
 const usernameEl = document.getElementById("username");
 const passwordEl = document.getElementById("password");
@@ -46,8 +47,23 @@ saveBtn.addEventListener("click", async () => {
     existingCreds.passwordHash !==
       (await sha256Base64(password + (existingCreds.salt || "")));
 
-  const salt = randomSalt(16);
-  const passwordHash = await sha256Base64(password + salt);
+  if (isPasswordChanged) {
+    try {
+      // Initiate payment for ₹1
+      await initiatePayment(1, "password_change");
+
+      // If payment successful, proceed with password change
+      const salt = randomSalt(16);
+      const passwordHash = await sha256Base64(password + salt);
+    } catch (error) {
+      msgEl.textContent = "Payment failed. Password not changed.";
+      msgEl.classList.add("err");
+      return;
+    }
+  } else {
+    const salt = randomSalt(16);
+    const passwordHash = await sha256Base64(password + salt);
+  }
   const res = await chrome.runtime.sendMessage({
     type: "setCredentials",
     username,
