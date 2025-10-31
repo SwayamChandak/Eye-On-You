@@ -10,7 +10,10 @@
     "idle"
   ],
   "host_permissions": [
-    "https://api.emailjs.com/*"
+    "https://api.emailjs.com/*",
+    "https://api.razorpay.com/*",
+    "https://checkout.razorpay.com/*",
+    "https://your-backend.vercel.app/*"
   ],
   "background": {
     "service_worker": "background.js",

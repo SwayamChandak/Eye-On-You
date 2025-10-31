@@ -1,4 +1,4 @@
-import { sha256Base64, randomSalt } from "./util_hash.js";
+import { sha256Base64, randomSalt } from "../backend/util_hash.js";
 
 const usernameEl = document.getElementById("username");
 const passwordEl = document.getElementById("password");

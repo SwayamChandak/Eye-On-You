@@ -1,4 +1,4 @@
-import { sha256Base64 } from "./util_hash.js";
+import { sha256Base64 } from "../backend/util_hash.js";
 
 const trackingStateEl = document.getElementById("trackingState");
 const tableBodyEl = document.querySelector("#statsTable tbody");
