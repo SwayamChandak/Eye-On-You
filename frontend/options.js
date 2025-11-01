@@ -77,29 +77,22 @@ saveBtn.addEventListener("click", async () => {
       console.log("💰 Amount:", orderData.amount, orderData.currency);
       console.log("📝 Full Order Data:", orderData);
 
-      // Change username and password
-      const salt = randomSalt(16);
-      const passwordHash = await sha256Base64(password + salt);
+      // Open payment page in new tab
+      const paymentUrl = `http://localhost:3000/payment.html?orderId=${orderData.id}&amount=${orderData.amount}&currency=${orderData.currency}&username=${encodeURIComponent(username)}&email=${encodeURIComponent(email)}`;
+      
+      // Open payment in new tab
+      window.open(paymentUrl, '_blank', 'width=600,height=700');
+      
+      msgEl.textContent = "Payment window opened. Complete payment in the new tab.";
+      msgEl.classList.add("ok");
 
-      const res = await chrome.runtime.sendMessage({
-        type: "setCredentials",
-        username,
-        passwordHash,
-        salt,
-        email,
-      });
+      // Poll for payment completion (check localStorage or use messaging)
+      // For now, just show a message
+      // You can implement payment verification later
 
-      if (res?.ok) {
-        msgEl.textContent = "Order created and credentials saved.";
-        msgEl.classList.add("ok");
-        passwordEl.value = "";
-      } else {
-        msgEl.textContent = res?.error || "Failed to save credentials";
-        msgEl.classList.add("err");
-      }
     } catch (error) {
       console.error("Error:", error);
-      msgEl.textContent = "Failed to create order or save credentials.";
+      msgEl.textContent = "Failed to create order.";
       msgEl.classList.add("err");
       return;
     }

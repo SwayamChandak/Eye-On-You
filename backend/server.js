@@ -18,6 +18,9 @@ app.use(
   })
 );
 
+// Serve static files from public directory
+app.use(express.static("public"));
+
 // Routes
 app.use("/api", paymentRoutes);
 
