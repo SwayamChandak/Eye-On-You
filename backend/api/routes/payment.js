@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Create Order
 router.post("/create-order", async (req, res) => {
-  console.log("🚀 ~ create-order:", create - order);
+  console.log("🚀 ~ create-order endpoint called");
   try {
     const {
       amount,
@@ -54,9 +54,16 @@ router.post("/create-order", async (req, res) => {
 
     const order = await response.json();
 
+    // Print order ID in backend console
+    console.log("✅ Order created successfully!");
+    console.log("📋 Order ID:", order.id);
+    console.log("💰 Amount:", order.amount / 100, order.currency);
+    console.log("📝 Receipt:", order.receipt);
+
     res.json({
       success: true,
       id: order.id,
+      orderId: order.id, // Explicitly return orderId for frontend
       entity: order.entity,
       amount: order.amount,
       currency: order.currency,

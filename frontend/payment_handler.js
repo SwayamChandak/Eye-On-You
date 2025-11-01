@@ -1,11 +1,18 @@
-// Constants
-const BACKEND_URL = "http://localhost:3000"; // When testing locally
-const RAZORPAY_KEY_ID = "rzp_test_RZfOfg4ZK6qdnl";
+// Payment handler for browser extension
+// This file is kept for future use but payment logic is now handled via backend API
 
-export async function initiatePayment(amount, purpose) {
+const BACKEND_URL = "http://localhost:3000";
+
+/**
+ * Create a payment order via backend API
+ * @param {number} amount - Amount in INR
+ * @param {string} purpose - Purpose of payment
+ * @param {object} notes - Additional notes
+ * @returns {Promise<object>} Order data
+ */
+export async function createPaymentOrder(amount, purpose, notes = {}) {
   try {
-    // Create order
-    const orderResponse = await fetch(`${BACKEND_URL}/api/create-order`, {
+    const response = await fetch(`${BACKEND_URL}/api/create-order`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -13,62 +20,49 @@ export async function initiatePayment(amount, purpose) {
       body: JSON.stringify({
         amount,
         currency: "INR",
+        receipt: `receipt_${Date.now()}`,
         notes: {
           purpose,
+          ...notes,
         },
       }),
     });
 
-    if (!orderResponse.ok) {
-      throw new Error("Failed to create order");
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Failed to create order");
     }
 
-    const orderData = await orderResponse.json();
-
-    // Initialize Razorpay
-    const options = {
-      key: RAZORPAY_KEY_ID,
-      amount: orderData.amount,
-      currency: orderData.currency,
-      name: "Eye-On-You",
-      description: `Payment for ${purpose}`,
-      order_id: orderData.id,
-      handler: async function (response) {
-        // Verify payment
-        const verifyResponse = await fetch(
-          `${BACKEND_URL}/api/verify-payment`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-            }),
-          }
-        );
-
-        if (!verifyResponse.ok) {
-          throw new Error("Payment verification failed");
-        }
-
-        return await verifyResponse.json();
-      },
-      theme: {
-        color: "#6aa3ff",
-      },
-    };
-
-    const rzp = new window.Razorpay(options);
-    rzp.open();
-
-    return new Promise((resolve) => {
-      rzp.on("payment.success", resolve);
-    });
+    return await response.json();
   } catch (error) {
-    console.error("Payment error:", error);
+    console.error("Payment order creation error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Verify a payment via backend API
+ * @param {object} paymentData - Payment verification data
+ * @returns {Promise<object>} Verification result
+ */
+export async function verifyPayment(paymentData) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/verify-payment`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(paymentData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Payment verification failed");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Payment verification error:", error);
     throw error;
   }
 }

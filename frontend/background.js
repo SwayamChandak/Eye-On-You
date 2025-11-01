@@ -1,5 +1,5 @@
 // Time Counter background service worker (MV3)
-import { sendEmailNotification } from "../backend/util_email.js";
+import { sendEmailNotification } from "./util_email.js";
 
 // Storage keys
 const STORAGE_KEYS = {

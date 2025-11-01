@@ -1,5 +1,4 @@
-import { sha256Base64, randomSalt } from "../backend/util_hash.js";
-import { initiatePayment } from "./payment_handler.js";
+import { sha256Base64, randomSalt } from "./util_hash.js";
 
 const usernameEl = document.getElementById("username");
 const passwordEl = document.getElementById("password");
@@ -71,7 +70,12 @@ saveBtn.addEventListener("click", async () => {
       }
 
       const orderData = await response.json();
-      console.log("Order created:", orderData);
+      
+      // Print order ID in frontend console
+      console.log("✅ Order created successfully!");
+      console.log("📋 Order ID:", orderData.id || orderData.orderId);
+      console.log("💰 Amount:", orderData.amount, orderData.currency);
+      console.log("📝 Full Order Data:", orderData);
 
       // Change username and password
       const salt = randomSalt(16);
