@@ -1,10 +1,11 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { router as paymentRoutes } from "./routes/payment.js";
 
-// Load environment variables
+// Load environment variables FIRST before importing routes
 dotenv.config();
+
+import { router as paymentRoutes } from "./api/routes/payment.js";
 
 const app = express();
 

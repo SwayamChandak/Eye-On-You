@@ -1,30 +1,8 @@
 import express from "express";
-import Razorpay from "razorpay";
 import crypto from "crypto";
-import fetch from "node-fetch";
+// import fetch from "node-fetch";
 
 const router = express.Router();
-
-// https://razorpay.com/docs/payments/server-integration/python/integration-steps/#integrate-with-razorpay-payment-gateway
-
-// curl -u [YOUR_KEY_ID]:[YOUR_KEY_SECRET] \
-// -X POST https://api.razorpay.com/v1/orders \
-// -H "content-type: application/json" \
-// -d '{
-//   "amount": 5000,
-//   "currency": "<currency>",
-//   "receipt": "receipt#1",
-//   "notes": {
-//     "key1": "value3",
-//     "key2": "value2"
-//   }
-// }'
-
-// Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
 
 // Create Order
 router.post("/create-order", async (req, res) => {

@@ -49,46 +49,77 @@ saveBtn.addEventListener("click", async () => {
 
   if (isPasswordChanged) {
     try {
-      // Initiate payment for ₹1
-      await initiatePayment(1, "password_change");
+      // Call localhost API to create order
+      const response = await fetch("http://localhost:3000/api/create-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: 1,
+          currency: "INR",
+          receipt: `receipt_${Date.now()}`,
+          notes: {
+            purpose: "password_change",
+            username: username,
+          },
+        }),
+      });
 
-      // If payment successful, proceed with password change
+      if (!response.ok) {
+        throw new Error("Failed to create order");
+      }
+
+      const orderData = await response.json();
+      console.log("Order created:", orderData);
+
+      // Change username and password
       const salt = randomSalt(16);
       const passwordHash = await sha256Base64(password + salt);
+
+      const res = await chrome.runtime.sendMessage({
+        type: "setCredentials",
+        username,
+        passwordHash,
+        salt,
+        email,
+      });
+
+      if (res?.ok) {
+        msgEl.textContent = "Order created and credentials saved.";
+        msgEl.classList.add("ok");
+        passwordEl.value = "";
+      } else {
+        msgEl.textContent = res?.error || "Failed to save credentials";
+        msgEl.classList.add("err");
+      }
     } catch (error) {
-      msgEl.textContent = "Payment failed. Password not changed.";
+      console.error("Error:", error);
+      msgEl.textContent = "Failed to create order or save credentials.";
       msgEl.classList.add("err");
       return;
     }
   } else {
+    // No password change, just save credentials normally
     const salt = randomSalt(16);
     const passwordHash = await sha256Base64(password + salt);
-  }
-  const res = await chrome.runtime.sendMessage({
-    type: "setCredentials",
-    username,
-    passwordHash,
-    salt,
-    email,
-  });
 
-  if (res?.ok) {
-    msgEl.textContent = "Saved.";
-    msgEl.classList.add("ok");
-    passwordEl.value = "";
+    const res = await chrome.runtime.sendMessage({
+      type: "setCredentials",
+      username,
+      passwordHash,
+      salt,
+      email,
+    });
 
-    // Send email notification if password was changed and email is provided
-    if (isPasswordChanged && email) {
-      await chrome.runtime.sendMessage({
-        type: "sendEmail",
-        event: "password_change",
-        email: email,
-        username: username,
-      });
+    if (res?.ok) {
+      msgEl.textContent = "Saved.";
+      msgEl.classList.add("ok");
+      passwordEl.value = "";
+    } else {
+      msgEl.textContent = res?.error || "Failed to save";
+      msgEl.classList.add("err");
     }
-  } else {
-    msgEl.textContent = res?.error || "Failed to save";
-    msgEl.classList.add("err");
   }
 });
 
